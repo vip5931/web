@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import bcrypt from 'bcryptjs'
 import { connectDatabase } from '../config/database'
 import User from '../models/User'

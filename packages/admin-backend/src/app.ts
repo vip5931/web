@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import Koa from 'koa'
 import cors from '@koa/cors'
 import logger from 'koa-logger'
@@ -17,7 +18,7 @@ app.use(errorHandler)
 app.use(logger())
 app.use(
   cors({
-    origin: 'http://localhost:5173', // 前端开发服务器地址
+    origin: '*', // 开发环境允许所有来源
     credentials: true
   })
 )
