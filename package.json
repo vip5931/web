@@ -1,0 +1,46 @@
+{
+  "name": "admin-system",
+  "version": "1.0.0",
+  "description": "后台管理系统 - 基于 Vue3 + Koa2 + MySQL 的 monorepo 项目",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm run --parallel dev",
+    "build": "pnpm run --recursive build",
+    "lint": "pnpm run --recursive lint",
+    "lint:fix": "pnpm run --recursive lint:fix",
+    "type-check": "pnpm run --recursive type-check",
+    "clean": "pnpm run --recursive clean",
+    "frontend:dev": "pnpm --filter admin-frontend dev",
+    "backend:dev": "pnpm --filter admin-backend dev",
+    "frontend:build": "pnpm --filter admin-frontend build",
+    "backend:build": "pnpm --filter admin-backend build"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.45.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-vue": "^9.15.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "keywords": [
+    "admin",
+    "vue3",
+    "koa2",
+    "mysql",
+    "monorepo",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT"
+}
