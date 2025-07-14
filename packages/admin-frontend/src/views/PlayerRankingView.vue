@@ -318,12 +318,14 @@ const formatTime = (time: string) => {
 const fetchPlayers = async () => {
   loading.value = true
   try {
+    const userId = userStore.user?.id || 5
     const response = await api.get('/ranking/players', {
       params: {
         page: pagination.current,
         pageSize: pagination.pageSize,
         search: searchForm.search,
         server: searchForm.server,
+        userId: userId,
       },
     })
 
@@ -336,6 +338,19 @@ const fetchPlayers = async () => {
     message.error(error.message || '获取玩家排行失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 获取用户可访问的区服列表
+const fetchUserServers = async () => {
+  try {
+    const userId = userStore.user?.id || 5
+    const response = await api.get(`/servers/user-servers?userId=${userId}`)
+    if (response.success) {
+      serverList.value = response.data
+    }
+  } catch (error: any) {
+    console.error('获取用户区服失败:', error)
   }
 }
 
@@ -433,6 +448,7 @@ const deletePlayer = async (id: number) => {
 }
 
 onMounted(() => {
+  fetchUserServers()
   fetchPlayers()
 })
 </script>

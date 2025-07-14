@@ -12,6 +12,7 @@ import { userRoleRoutes } from './routes/user-roles'
 import { gamePermissionRoutes } from './routes/game-permission'
 import { rankingRoutes } from './routes/ranking'
 import { menuRoutes } from './routes/menu'
+import { serverRoutes } from './routes/server'
 import { connectDatabase } from './config/database'
 
 const app = new Koa()
@@ -42,6 +43,7 @@ router.use('/api/user-roles', userRoleRoutes.routes())
 router.use('/api/game-permissions', gamePermissionRoutes.routes())
 router.use('/api/ranking', rankingRoutes.routes())
 router.use('/api/menus', menuRoutes.routes())
+router.use('/api/servers', serverRoutes.routes())
 
 // 健康检查
 router.get('/health', ctx => {

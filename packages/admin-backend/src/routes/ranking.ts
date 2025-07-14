@@ -6,16 +6,42 @@ const router = new Router()
 // 获取玩家排行榜
 router.get('/players', async ctx => {
   try {
-    const { page = 1, pageSize = 10, search = '', server = '' } = ctx.query
+    const { page = 1, pageSize = 10, search = '', server = '', userId = 5 } = ctx.query
 
     const offset = (Number(page) - 1) * Number(pageSize)
     const limit = Number(pageSize)
+
+    // 获取用户可访问的区服
+    const userServers = await getUserAllowedServers(Number(userId))
+
+    if (userServers.length === 0) {
+      ctx.body = {
+        success: true,
+        data: {
+          players: [],
+          servers: [],
+          pagination: {
+            current: Number(page),
+            pageSize: Number(pageSize),
+            total: 0,
+            totalPages: 0
+          }
+        }
+      }
+      return
+    }
 
     let whereClause = ''
     const replacements: any[] = []
 
     // 构建查询条件
     const conditions: string[] = []
+
+    // 添加区服权限限制
+    const serverPlaceholders = userServers.map(() => '?').join(',')
+    conditions.push(`server_name IN (${serverPlaceholders})`)
+    replacements.push(...userServers)
+
     if (search) {
       conditions.push('role_name LIKE ?')
       replacements.push(`%${search}%`)
@@ -25,9 +51,7 @@ router.get('/players', async ctx => {
       replacements.push(server)
     }
 
-    if (conditions.length > 0) {
-      whereClause = 'WHERE ' + conditions.join(' AND ')
-    }
+    whereClause = 'WHERE ' + conditions.join(' AND ')
 
     // 获取总数
     const [countResult] = await sequelize.query(
@@ -86,16 +110,42 @@ router.get('/players', async ctx => {
 // 获取门派排行榜
 router.get('/schools', async ctx => {
   try {
-    const { page = 1, pageSize = 10, search = '', server = '' } = ctx.query
+    const { page = 1, pageSize = 10, search = '', server = '', userId = 5 } = ctx.query
 
     const offset = (Number(page) - 1) * Number(pageSize)
     const limit = Number(pageSize)
+
+    // 获取用户可访问的区服
+    const userServers = await getUserAllowedServers(Number(userId))
+
+    if (userServers.length === 0) {
+      ctx.body = {
+        success: true,
+        data: {
+          schools: [],
+          servers: [],
+          pagination: {
+            current: Number(page),
+            pageSize: Number(pageSize),
+            total: 0,
+            totalPages: 0
+          }
+        }
+      }
+      return
+    }
 
     let whereClause = ''
     const replacements: any[] = []
 
     // 构建查询条件
     const conditions: string[] = []
+
+    // 添加区服权限限制
+    const serverPlaceholders = userServers.map(() => '?').join(',')
+    conditions.push(`server IN (${serverPlaceholders})`)
+    replacements.push(...userServers)
+
     if (search) {
       conditions.push('name LIKE ?')
       replacements.push(`%${search}%`)
@@ -105,9 +155,7 @@ router.get('/schools', async ctx => {
       replacements.push(server)
     }
 
-    if (conditions.length > 0) {
-      whereClause = 'WHERE ' + conditions.join(' AND ')
-    }
+    whereClause = 'WHERE ' + conditions.join(' AND ')
 
     // 获取总数
     const [countResult] = await sequelize.query(
@@ -371,5 +419,94 @@ router.get('/stats', async ctx => {
     }
   }
 })
+
+// 辅助函数：获取用户允许访问的区服
+async function getUserAllowedServers(userId: number): Promise<string[]> {
+  try {
+    console.log('Getting allowed servers for user:', userId)
+
+    // 获取用户角色
+    const [userRoles] = await sequelize.query(
+      `
+      SELECT r.* FROM roles r
+      JOIN user_roles ur ON r.id = ur.role_id
+      WHERE ur.user_id = ?
+    `,
+      { replacements: [userId] }
+    )
+
+    console.log('User roles:', userRoles)
+
+    if (!userRoles || (userRoles as any[]).length === 0) {
+      return []
+    }
+
+    const role = (userRoles as any[])[0]
+
+    // 超级管理员和管理员可以看到所有区服
+    if (role.level <= 2) {
+      console.log('User is admin/super admin, getting all servers')
+      const [allServers] = await sequelize.query(`
+        SELECT DISTINCT server_name as name FROM rank_list
+        UNION
+        SELECT DISTINCT server as name FROM school
+        ORDER BY name
+      `)
+      const serverNames = (allServers as any[]).map(s => s.name)
+      console.log('All servers for admin:', serverNames)
+      return serverNames
+    }
+
+    // 普通员工根据权限
+    const [staffPermissions] = await sequelize.query(
+      `
+      SELECT server_permissions FROM staff_permissions WHERE user_id = ?
+    `,
+      { replacements: [userId] }
+    )
+
+    let allowedServers: string[] = []
+
+    if (staffPermissions && (staffPermissions as any[]).length > 0) {
+      const permission = (staffPermissions as any[])[0]
+      const serverPermissions = permission.server_permissions
+
+      if (serverPermissions) {
+        try {
+          let serverIds: number[] = []
+
+          if (Array.isArray(serverPermissions)) {
+            serverIds = serverPermissions
+          } else if (typeof serverPermissions === 'string') {
+            const parsed = JSON.parse(serverPermissions)
+            if (Array.isArray(parsed)) {
+              serverIds = parsed
+            }
+          }
+
+          // 根据区服ID获取区服名称
+          if (serverIds.length > 0) {
+            console.log('Server IDs from permissions:', serverIds)
+            const placeholders = serverIds.map(() => '?').join(',')
+            const [servers] = await sequelize.query(
+              `SELECT name FROM servers WHERE id IN (${placeholders})`,
+              { replacements: serverIds }
+            )
+            allowedServers = (servers as any[]).map(s => s.name)
+            console.log('Allowed servers for staff:', allowedServers)
+          }
+        } catch (error) {
+          console.warn('Failed to parse server permissions:', error)
+        }
+      }
+    }
+
+    console.log('Final allowed servers for user', userId, ':', allowedServers)
+    return allowedServers
+  } catch (error) {
+    console.error('Error getting user allowed servers:', error)
+    return []
+  }
+}
 
 export { router as rankingRoutes }

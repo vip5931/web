@@ -314,12 +314,14 @@ const formatTime = (time: string) => {
 const fetchSchools = async () => {
   loading.value = true
   try {
+    const userId = userStore.user?.id || 5
     const response = await api.get('/ranking/schools', {
       params: {
         page: pagination.current,
         pageSize: pagination.pageSize,
         search: searchForm.search,
         server: searchForm.server,
+        userId: userId,
       },
     })
 
@@ -332,6 +334,19 @@ const fetchSchools = async () => {
     message.error(error.message || '获取门派排行失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 获取用户可访问的区服列表
+const fetchUserServers = async () => {
+  try {
+    const userId = userStore.user?.id || 5
+    const response = await api.get(`/servers/user-servers?userId=${userId}`)
+    if (response.success) {
+      serverList.value = response.data
+    }
+  } catch (error: any) {
+    console.error('获取用户区服失败:', error)
   }
 }
 
@@ -429,6 +444,7 @@ const deleteSchool = async (id: number) => {
 }
 
 onMounted(() => {
+  fetchUserServers()
   fetchSchools()
 })
 </script>

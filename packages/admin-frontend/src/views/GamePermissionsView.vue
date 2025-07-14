@@ -260,7 +260,7 @@ const fetchMenus = async () => {
 // 获取区服列表
 const fetchServers = async () => {
   try {
-    const response = await api.get('/game-permissions/servers')
+    const response = await api.get('/servers/all')
     if (response.success) {
       serverList.value = response.data
     }
@@ -268,11 +268,11 @@ const fetchServers = async () => {
     console.warn('获取区服列表失败，使用模拟数据')
     // 模拟数据
     serverList.value = [
-      { id: 1, name: '测试服', region: '测试区', code: 'test', status: 'active' },
-      { id: 2, name: '体验服', region: '测试区', code: 'beta', status: 'active' },
-      { id: 3, name: '正式服1区', region: '华东', code: 'server1', status: 'active' },
-      { id: 4, name: '正式服2区', region: '华南', code: 'server2', status: 'active' },
-      { id: 5, name: '正式服3区', region: '华北', code: 'server3', status: 'active' },
+      { id: 1, name: 'QQ互通1区' },
+      { id: 2, name: 'QQ互通34区' },
+      { id: 3, name: 'QQ互通43区' },
+      { id: 4, name: 'QQ互通58区' },
+      { id: 5, name: '微信互通1区' },
     ]
   }
 }

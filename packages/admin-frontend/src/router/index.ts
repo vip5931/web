@@ -64,6 +64,18 @@ const router = createRouter({
       ],
     },
     {
+      path: '/server-management',
+      name: 'server-management',
+      component: () => import('../layouts/AdminLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          component: () => import('../views/ServerManagementView.vue'),
+        },
+      ],
+    },
+    {
       path: '/ranking',
       name: 'ranking',
       component: () => import('../layouts/AdminLayout.vue'),
