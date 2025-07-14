@@ -23,7 +23,7 @@ router.post('/login', async ctx => {
     // 查找用户（包含密码字段用于验证）
     const user = await User.findOne({
       where: { username },
-      attributes: ['id', 'username', 'email', 'password', 'role', 'status', 'avatar']
+      attributes: ['id', 'username', 'email', 'password', 'status', 'avatar']
     })
 
     console.log(
@@ -69,8 +69,7 @@ router.post('/login', async ctx => {
     const token = jwt.sign(
       {
         id: user.id,
-        username: user.username,
-        role: user.role
+        username: user.username
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
@@ -88,7 +87,6 @@ router.post('/login', async ctx => {
           id: user.id,
           username: user.username,
           email: user.email,
-          role: user.role,
           avatar: user.avatar
         }
       }
@@ -145,7 +143,6 @@ router.post('/register', async ctx => {
       username,
       email,
       password: hashedPassword,
-      role: 'user',
       status: 'active'
     })
 
@@ -156,8 +153,7 @@ router.post('/register', async ctx => {
         user: {
           id: user.id,
           username: user.username,
-          email: user.email,
-          role: user.role
+          email: user.email
         }
       }
     }

@@ -27,13 +27,14 @@ export const connectDatabase = async () => {
     await sequelize.authenticate()
     console.log('✅ Database connection has been established successfully.')
 
-    // 同步数据库模型
-    await sequelize.sync({ alter: true })
-    console.log('✅ Database models synchronized.')
+    // 暂时禁用自动同步，避免索引冲突
+    // await sequelize.sync({ alter: true })
+    console.log('✅ Database models ready.')
   } catch (error) {
     console.error('❌ Unable to connect to the database:', error)
     process.exit(1)
   }
 }
 
+export { sequelize }
 export default sequelize

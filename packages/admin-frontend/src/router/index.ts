@@ -39,14 +39,26 @@ const router = createRouter({
       ],
     },
     {
-      path: '/settings',
-      name: 'settings',
+      path: '/roles',
+      name: 'roles',
       component: () => import('../layouts/AdminLayout.vue'),
       meta: { requiresAuth: true },
       children: [
         {
           path: '',
-          component: () => import('../views/SettingsView.vue'),
+          component: () => import('../views/RolesView.vue'),
+        },
+      ],
+    },
+    {
+      path: '/permissions',
+      name: 'permissions',
+      component: () => import('../layouts/AdminLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          component: () => import('../views/PermissionsView.vue'),
         },
       ],
     },

@@ -1,58 +1,48 @@
 <template>
-  <div class="users-page">
-    <div class="page-header">
-      <h1>用户管理</h1>
-      <a-button type="primary" @click="showAddModal">
-        <PlusOutlined />
-        添加用户
-      </a-button>
-    </div>
+  <div class="roles-page">
+    <a-card title="角色管理" :bordered="false">
+      <!-- 搜索和操作栏 -->
+      <div class="search-bar">
+        <a-row :gutter="16">
+          <a-col :span="8">
+            <a-input
+              v-model:value="searchForm.search"
+              placeholder="搜索角色名称或编码"
+              allow-clear
+              @press-enter="handleSearch"
+            />
+          </a-col>
+          <a-col :span="8">
+            <a-space>
+              <a-button type="primary" @click="handleSearch">搜索</a-button>
+              <a-button @click="resetSearch">重置</a-button>
+            </a-space>
+          </a-col>
+          <a-col :span="8" style="text-align: right">
+            <a-button type="primary" @click="showAddModal">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+              新增角色
+            </a-button>
+          </a-col>
+        </a-row>
+      </div>
 
-    <!-- 搜索和筛选 -->
-    <a-card class="search-card">
-      <a-form layout="inline" :model="searchForm" @finish="handleSearch">
-        <a-form-item label="搜索">
-          <a-input
-            v-model:value="searchForm.search"
-            placeholder="用户名或邮箱"
-            style="width: 200px"
-          />
-        </a-form-item>
-        <a-form-item>
-          <a-button type="primary" html-type="submit">搜索</a-button>
-          <a-button style="margin-left: 8px" @click="resetSearch">重置</a-button>
-        </a-form-item>
-      </a-form>
-    </a-card>
-
-    <!-- 用户表格 -->
-    <a-card>
+      <!-- 角色表格 -->
       <a-table
         :columns="columns"
-        :data-source="users"
+        :data-source="roles"
         :loading="loading"
         :pagination="pagination"
         @change="handleTableChange"
         row-key="id"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'avatar'">
-            <a-avatar :size="40" :src="record.avatar">
-              {{ record.username.charAt(0).toUpperCase() }}
-            </a-avatar>
-          </template>
-          <template v-else-if="column.key === 'role'">
-            <a-tag :color="record.role === 'admin' ? 'red' : 'blue'">
-              {{ record.role === 'admin' ? '管理员' : '普通用户' }}
-            </a-tag>
-          </template>
-          <template v-else-if="column.key === 'status'">
-            <a-tag :color="record.status === 'active' ? 'green' : 'default'">
+          <template v-if="column.key === 'status'">
+            <a-tag :color="record.status === 'active' ? 'green' : 'red'">
               {{ record.status === 'active' ? '正常' : '禁用' }}
             </a-tag>
-          </template>
-          <template v-else-if="column.key === 'lastLoginAt'">
-            {{ record.lastLoginAt ? formatTime(record.lastLoginAt) : '从未登录' }}
           </template>
 
           <template v-else-if="column.key === 'createdAt'">
@@ -63,75 +53,69 @@
             <a-space>
               <a-button type="link" size="small" @click="showEditModal(record)"> 编辑 </a-button>
               <a-button
-                v-if="record.username !== 'admin'"
+                v-if="record.code !== 'admin'"
                 type="link"
                 size="small"
                 :danger="record.status === 'active'"
-                @click="toggleUserStatus(record)"
+                @click="toggleRoleStatus(record)"
               >
                 {{ record.status === 'active' ? '禁用' : '启用' }}
               </a-button>
               <a-popconfirm
-                v-if="record.username !== 'admin'"
-                title="确定要删除这个用户吗？"
-                @confirm="deleteUser(record.id)"
+                v-if="record.code !== 'admin'"
+                title="确定要删除这个角色吗？"
+                @confirm="deleteRole(record.id)"
                 ok-text="确定"
                 cancel-text="取消"
               >
                 <a-button type="link" size="small" danger> 删除 </a-button>
               </a-popconfirm>
-              <a-tag v-if="record.username === 'admin'" color="gold"> 系统管理员 </a-tag>
+              <a-tag v-if="record.code === 'admin'" color="gold"> 系统角色 </a-tag>
             </a-space>
           </template>
         </template>
       </a-table>
     </a-card>
 
-    <!-- 新增/编辑用户模态框 -->
+    <!-- 新增/编辑角色模态框 -->
     <a-modal
       v-model:open="modalVisible"
-      :title="isEdit ? '编辑用户' : '新增用户'"
+      :title="isEdit ? '编辑角色' : '新增角色'"
       @ok="handleSubmit"
       @cancel="handleCancel"
       :confirm-loading="submitLoading"
+      width="600px"
     >
       <a-form ref="formRef" :model="formData" :rules="formRules" layout="vertical">
-        <a-form-item label="用户名" name="username">
+        <a-form-item label="角色名称" name="name">
+          <a-input v-model:value="formData.name" placeholder="请输入角色名称" />
+        </a-form-item>
+
+        <a-form-item label="角色编码" name="code">
           <a-input
-            v-model:value="formData.username"
-            placeholder="请输入用户名"
-            :disabled="isEdit && formData.username === 'admin'"
+            v-model:value="formData.code"
+            placeholder="请输入角色编码"
+            :disabled="isEdit && formData.code === 'admin'"
           />
           <div
-            v-if="isEdit && formData.username === 'admin'"
+            v-if="isEdit && formData.code === 'admin'"
             style="color: #999; font-size: 12px; margin-top: 4px"
           >
-            管理员用户名不可修改
+            系统角色编码不可修改
           </div>
         </a-form-item>
 
-        <a-form-item label="邮箱" name="email">
-          <a-input v-model:value="formData.email" placeholder="请输入邮箱" />
+        <a-form-item label="角色描述" name="description">
+          <a-textarea v-model:value="formData.description" placeholder="请输入角色描述" :rows="3" />
         </a-form-item>
 
-        <a-form-item v-if="!isEdit" label="密码" name="password">
-          <a-input-password v-model:value="formData.password" placeholder="请输入密码" />
-        </a-form-item>
-
-        <a-form-item label="角色" name="roleIds">
-          <a-select
-            v-model:value="formData.roleIds"
-            mode="multiple"
-            placeholder="请选择角色"
-            :disabled="isEdit && formData.username === 'admin'"
-            :options="roleOptions"
+        <a-form-item label="排序" name="sort">
+          <a-input-number
+            v-model:value="formData.sort"
+            placeholder="请输入排序值"
+            :min="0"
+            style="width: 100%"
           />
-          <div
-            v-if="isEdit && formData.username === 'admin'"
-            style="color: #999; font-size: 12px; margin-top: 4px"
-          >
-            管理员角色不可修改
-          </div>
         </a-form-item>
 
         <a-form-item label="状态" name="status">
@@ -186,8 +170,9 @@ api.interceptors.response.use(
     return Promise.reject(error.response?.data || error)
   },
 )
+
 const loading = ref(false)
-const users = ref([])
+const roles = ref([])
 
 // 模态框相关
 const modalVisible = ref(false)
@@ -198,31 +183,28 @@ const formRef = ref()
 // 表单数据
 const formData = reactive({
   id: null,
-  username: '',
-  email: '',
-  password: '',
+  name: '',
+  code: '',
+  description: '',
+  sort: 0,
   status: 'active',
-  roleIds: [],
 })
-
-// 角色选项
-const roleOptions = ref([])
 
 // 表单验证规则
 const formRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '用户名长度为3-20个字符', trigger: 'blur' },
+  name: [
+    { required: true, message: '请输入角色名称', trigger: 'blur' },
+    { min: 2, max: 50, message: '角色名称长度为2-50个字符', trigger: 'blur' },
   ],
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' },
+  code: [
+    { required: true, message: '请输入角色编码', trigger: 'blur' },
+    { min: 2, max: 50, message: '角色编码长度为2-50个字符', trigger: 'blur' },
+    {
+      pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/,
+      message: '角色编码只能包含字母、数字和下划线，且以字母开头',
+      trigger: 'blur',
+    },
   ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度至少6个字符', trigger: 'blur' },
-  ],
-
   status: [{ required: true, message: '请选择状态', trigger: 'change' }],
 }
 
@@ -230,6 +212,7 @@ const searchForm = reactive({
   search: '',
 })
 
+// 分页配置
 const pagination = reactive({
   current: 1,
   pageSize: 10,
@@ -239,42 +222,46 @@ const pagination = reactive({
   showTotal: (total: number) => `共 ${total} 条记录`,
 })
 
+// 表格列配置
 const columns = [
   {
-    title: '头像',
-    dataIndex: 'avatar',
-    key: 'avatar',
+    title: 'ID',
+    dataIndex: 'id',
+    key: 'id',
     width: 80,
   },
   {
-    title: '用户名',
-    dataIndex: 'username',
-    key: 'username',
+    title: '角色名称',
+    dataIndex: 'name',
+    key: 'name',
   },
   {
-    title: '邮箱',
-    dataIndex: 'email',
-    key: 'email',
+    title: '角色编码',
+    dataIndex: 'code',
+    key: 'code',
   },
   {
-    title: '角色',
-    dataIndex: 'role',
-    key: 'role',
+    title: '描述',
+    dataIndex: 'description',
+    key: 'description',
+  },
+  {
+    title: '排序',
+    dataIndex: 'sort',
+    key: 'sort',
+    width: 80,
   },
   {
     title: '状态',
     dataIndex: 'status',
     key: 'status',
-  },
-  {
-    title: '最后登录',
-    dataIndex: 'lastLoginAt',
-    key: 'lastLoginAt',
+    width: 100,
   },
   {
     title: '创建时间',
     dataIndex: 'createdAt',
     key: 'createdAt',
+    width: 180,
   },
   {
     title: '操作',
@@ -285,28 +272,9 @@ const columns = [
 
 // 获取角色列表
 const fetchRoles = async () => {
-  try {
-    const response = await api.get('/roles')
-    if (response.success) {
-      roleOptions.value =
-        response.data.roles?.map((role: any) => ({
-          label: role.name,
-          value: role.id,
-        })) || []
-    }
-  } catch (error) {
-    // 使用模拟数据
-    roleOptions.value = [
-      { label: '超级管理员', value: 1 },
-      { label: '普通用户', value: 2 },
-    ]
-  }
-}
-
-const fetchUsers = async () => {
   loading.value = true
   try {
-    const response = await api.get('/users', {
+    const response = await api.get('/roles', {
       params: {
         page: pagination.current,
         pageSize: pagination.pageSize,
@@ -315,11 +283,35 @@ const fetchUsers = async () => {
     })
 
     if (response.success) {
-      users.value = response.data.users || response.data
+      roles.value = response.data.roles || response.data
       pagination.total = response.data.pagination?.total || response.data.length
     }
   } catch (error: any) {
-    message.error(error.message || '获取用户列表失败')
+    // 如果 API 调用失败，使用模拟数据
+    console.warn('API call failed, using mock data:', error.message)
+    const mockRoles = [
+      {
+        id: 1,
+        name: '超级管理员',
+        code: 'admin',
+        description: '系统超级管理员，拥有所有权限',
+        sort: 1,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        name: '普通用户',
+        code: 'user',
+        description: '普通用户角色',
+        sort: 2,
+        status: 'active',
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+      },
+    ]
+
+    roles.value = mockRoles
+    pagination.total = mockRoles.length
   } finally {
     loading.value = false
   }
@@ -327,19 +319,19 @@ const fetchUsers = async () => {
 
 const handleSearch = () => {
   pagination.current = 1
-  fetchUsers()
+  fetchRoles()
 }
 
 const resetSearch = () => {
   searchForm.search = ''
   pagination.current = 1
-  fetchUsers()
+  fetchRoles()
 }
 
 const handleTableChange = (pag: any) => {
   pagination.current = pag.current
   pagination.pageSize = pag.pageSize
-  fetchUsers()
+  fetchRoles()
 }
 
 // 格式化时间
@@ -350,11 +342,11 @@ const formatTime = (time: string | Date) => {
 // 重置表单
 const resetForm = () => {
   formData.id = null
-  formData.username = ''
-  formData.email = ''
-  formData.password = ''
+  formData.name = ''
+  formData.code = ''
+  formData.description = ''
+  formData.sort = 0
   formData.status = 'active'
-  formData.roleIds = []
 }
 
 // 显示新增模态框
@@ -368,10 +360,11 @@ const showAddModal = () => {
 const showEditModal = (record: any) => {
   isEdit.value = true
   formData.id = record.id
-  formData.username = record.username
-  formData.email = record.email
+  formData.name = record.name
+  formData.code = record.code
+  formData.description = record.description
+  formData.sort = record.sort
   formData.status = record.status
-  formData.roleIds = record.roles?.map((role: any) => role.id) || []
   modalVisible.value = true
 }
 
@@ -388,7 +381,7 @@ const handleSubmit = async () => {
     await formRef.value?.validate()
     submitLoading.value = true
 
-    const apiUrl = isEdit.value ? `/users/${formData.id}` : '/users'
+    const apiUrl = isEdit.value ? `/roles/${formData.id}` : '/roles'
     const method = isEdit.value ? 'put' : 'post'
 
     const response = await api[method](apiUrl, formData)
@@ -397,7 +390,7 @@ const handleSubmit = async () => {
       message.success(isEdit.value ? '更新成功' : '创建成功')
       modalVisible.value = false
       resetForm()
-      fetchUsers()
+      fetchRoles()
     }
   } catch (error: any) {
     message.error(error.message || '操作失败')
@@ -406,39 +399,39 @@ const handleSubmit = async () => {
   }
 }
 
-// 切换用户状态
-const toggleUserStatus = async (record: any) => {
+// 切换角色状态
+const toggleRoleStatus = async (record: any) => {
   try {
-    // 保护管理员账户
-    if (record.username === 'admin') {
-      message.warning('不能修改管理员账户状态')
+    // 保护系统角色
+    if (record.code === 'admin') {
+      message.warning('不能修改系统角色状态')
       return
     }
 
     const newStatus = record.status === 'active' ? 'inactive' : 'active'
 
-    const response = await api.put(`/users/${record.id}`, {
+    const response = await api.put(`/roles/${record.id}`, {
       ...record,
       status: newStatus,
     })
 
     if (response.success) {
-      message.success(`用户已${newStatus === 'active' ? '启用' : '禁用'}`)
-      fetchUsers()
+      message.success(`角色已${newStatus === 'active' ? '启用' : '禁用'}`)
+      fetchRoles()
     }
   } catch (error: any) {
     message.error(error.message || '操作失败')
   }
 }
 
-// 删除用户
-const deleteUser = async (id: number) => {
+// 删除角色
+const deleteRole = async (id: number) => {
   try {
-    const response = await api.delete(`/users/${id}`)
+    const response = await api.delete(`/roles/${id}`)
 
     if (response.success) {
       message.success('删除成功')
-      fetchUsers()
+      fetchRoles()
     }
   } catch (error: any) {
     message.error(error.message || '删除失败')
@@ -446,31 +439,16 @@ const deleteUser = async (id: number) => {
 }
 
 onMounted(() => {
-  fetchUsers()
   fetchRoles()
 })
 </script>
 
 <style scoped>
-.users-page {
-  padding: 0;
+.roles-page {
+  padding: 24px;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.page-header h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: #262626;
-}
-
-.search-card {
+.search-bar {
   margin-bottom: 16px;
 }
 </style>

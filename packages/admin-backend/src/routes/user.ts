@@ -1,5 +1,6 @@
 import Router from '@koa/router'
 import { Op } from 'sequelize'
+import bcrypt from 'bcryptjs'
 import User from '../models/User'
 
 const router = new Router()
@@ -50,6 +51,83 @@ router.get('/', async ctx => {
   }
 })
 
+// 创建用户
+router.post('/', async ctx => {
+  try {
+    const {
+      username,
+      email,
+      password,
+      status = 'active'
+    } = ctx.request.body as {
+      username: string
+      email: string
+      password: string
+      status?: 'active' | 'inactive'
+    }
+
+    // 验证必填字段
+    if (!username || !email || !password) {
+      ctx.status = 400
+      ctx.body = {
+        success: false,
+        message: '用户名、邮箱和密码为必填项'
+      }
+      return
+    }
+
+    // 检查用户名是否已存在
+    const existingUser = await User.findOne({
+      where: {
+        [Op.or]: [{ username }, { email }]
+      }
+    })
+
+    if (existingUser) {
+      ctx.status = 400
+      ctx.body = {
+        success: false,
+        message: '用户名或邮箱已存在'
+      }
+      return
+    }
+
+    // 加密密码
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // 创建用户
+    const user = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+      status
+    })
+
+    // 角色分配功能暂时禁用
+
+    ctx.body = {
+      success: true,
+      message: '用户创建成功',
+      data: {
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          status: user.status,
+          createdAt: user.createdAt
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Create user error:', error)
+    ctx.status = 500
+    ctx.body = {
+      success: false,
+      message: '创建用户失败'
+    }
+  }
+})
+
 // 获取单个用户
 router.get('/:id', async ctx => {
   try {
@@ -86,10 +164,9 @@ router.get('/:id', async ctx => {
 router.put('/:id', async ctx => {
   try {
     const { id } = ctx.params
-    const { username, email, role, status } = ctx.request.body as {
+    const { username, email, status } = ctx.request.body as {
       username?: string
       email?: string
-      role?: 'admin' | 'user'
       status?: 'active' | 'inactive'
     }
 
@@ -103,12 +180,27 @@ router.put('/:id', async ctx => {
       return
     }
 
+    // 保护管理员账户 - 防止修改 admin 用户的关键信息
+    if (user.username === 'admin') {
+      // 不允许修改管理员的用户名
+      if (username && username !== 'admin') {
+        ctx.status = 403
+        ctx.body = {
+          success: false,
+          message: '不能修改管理员用户名'
+        }
+        return
+      }
+    }
+
+    // 更新用户基本信息
     await user.update({
       ...(username && { username }),
       ...(email && { email }),
-      ...(role && { role }),
       ...(status && { status })
     })
+
+    // 角色更新功能暂时禁用
 
     ctx.body = {
       success: true,
@@ -118,7 +210,6 @@ router.put('/:id', async ctx => {
           id: user.id,
           username: user.username,
           email: user.email,
-          role: user.role,
           status: user.status
         }
       }
@@ -147,6 +238,18 @@ router.delete('/:id', async ctx => {
       }
       return
     }
+
+    // 保护管理员账户 - 防止删除 admin 用户
+    if (user.username === 'admin') {
+      ctx.status = 403
+      ctx.body = {
+        success: false,
+        message: '不能删除管理员账户'
+      }
+      return
+    }
+
+    // 角色关联删除功能暂时禁用
 
     await user.destroy()
 

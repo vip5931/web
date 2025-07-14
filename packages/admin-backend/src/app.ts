@@ -8,6 +8,7 @@ import Router from '@koa/router'
 import { errorHandler } from './middleware/errorHandler'
 import { authRoutes } from './routes/auth'
 import { userRoutes } from './routes/user'
+import { roleRoutes } from './routes/role-simple'
 import { connectDatabase } from './config/database'
 
 const app = new Koa()
@@ -34,6 +35,7 @@ app.use(
 // 路由
 router.use('/api/auth', authRoutes.routes())
 router.use('/api/users', userRoutes.routes())
+router.use('/api/roles', roleRoutes.routes())
 
 // 健康检查
 router.get('/health', ctx => {

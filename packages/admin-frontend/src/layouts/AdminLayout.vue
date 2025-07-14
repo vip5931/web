@@ -1,17 +1,11 @@
 <template>
   <a-layout class="admin-layout">
     <!-- 侧边栏 -->
-    <a-layout-sider
-      v-model:collapsed="collapsed"
-      :trigger="null"
-      collapsible
-      class="sidebar"
-    >
+    <a-layout-sider :trigger="null" :collapsible="false" class="sidebar" width="200">
       <div class="logo">
-        <h2 v-if="!collapsed">管理系统</h2>
-        <h2 v-else>MS</h2>
+        <h2>管理系统</h2>
       </div>
-      
+
       <a-menu
         v-model:selectedKeys="selectedKeys"
         theme="dark"
@@ -22,34 +16,30 @@
           <DashboardOutlined />
           <span>仪表盘</span>
         </a-menu-item>
-        
+
         <a-menu-item key="users">
           <UserOutlined />
           <span>用户管理</span>
         </a-menu-item>
-        
-        <a-menu-item key="settings">
-          <SettingOutlined />
-          <span>系统设置</span>
+        <a-menu-item key="roles">
+          <TeamOutlined />
+          <span>角色管理</span>
+        </a-menu-item>
+        <a-menu-item key="permissions">
+          <SafetyOutlined />
+          <span>权限管理</span>
         </a-menu-item>
       </a-menu>
     </a-layout-sider>
-    
+
     <!-- 主内容区 -->
     <a-layout>
       <!-- 顶部导航 -->
       <a-layout-header class="header">
         <div class="header-left">
-          <a-button
-            type="text"
-            @click="collapsed = !collapsed"
-            class="trigger"
-          >
-            <MenuUnfoldOutlined v-if="collapsed" />
-            <MenuFoldOutlined v-else />
-          </a-button>
+          <!-- 可以在这里添加其他头部内容 -->
         </div>
-        
+
         <div class="header-right">
           <a-dropdown>
             <a-button type="text" class="user-info">
@@ -59,7 +49,7 @@
               <span class="username">{{ userStore.user?.username }}</span>
               <DownOutlined />
             </a-button>
-            
+
             <template #overlay>
               <a-menu>
                 <a-menu-item key="profile">
@@ -76,7 +66,7 @@
           </a-dropdown>
         </div>
       </a-layout-header>
-      
+
       <!-- 内容区 -->
       <a-layout-content class="content">
         <router-view />
@@ -90,13 +80,12 @@ import { ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
-  MenuUnfoldOutlined,
-  MenuFoldOutlined,
   DashboardOutlined,
   UserOutlined,
-  SettingOutlined,
+  TeamOutlined,
+  SafetyOutlined,
   DownOutlined,
-  LogoutOutlined
+  LogoutOutlined,
 } from '@ant-design/icons-vue'
 import { useUserStore } from '@/stores/user'
 
@@ -104,7 +93,6 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const collapsed = ref(false)
 const selectedKeys = ref<string[]>([])
 
 // 监听路由变化，更新选中的菜单项
@@ -115,11 +103,9 @@ watch(
       selectedKeys.value = ['dashboard']
     } else if (newPath.includes('users')) {
       selectedKeys.value = ['users']
-    } else if (newPath.includes('settings')) {
-      selectedKeys.value = ['settings']
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const handleMenuClick = ({ key }: { key: string }) => {
@@ -138,6 +124,13 @@ const handleLogout = () => {
   min-height: 100vh;
 }
 
+/* 全局过渡动画 */
+.sidebar,
+.header,
+.content {
+  transition: all 0.2s ease-in-out;
+}
+
 .sidebar {
   position: fixed;
   height: 100vh;
@@ -145,6 +138,16 @@ const handleLogout = () => {
   top: 0;
   bottom: 0;
   z-index: 100;
+  overflow: auto;
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+}
+
+.sidebar :deep(.ant-layout-sider-children) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .logo {
@@ -153,8 +156,9 @@ const handleLogout = () => {
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.1);
-  margin: 16px;
+  margin: 16px 16px 0 16px;
   border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .logo h2 {
@@ -164,6 +168,44 @@ const handleLogout = () => {
   font-weight: 600;
 }
 
+/* 菜单样式优化 */
+.sidebar :deep(.ant-menu) {
+  background: transparent;
+  border: none;
+  margin-top: 16px;
+  flex: 1;
+}
+
+.sidebar :deep(.ant-menu-item) {
+  margin: 4px 12px;
+  border-radius: 6px;
+  height: 40px;
+  line-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar :deep(.ant-menu-item-selected) {
+  background: #1890ff !important;
+}
+
+.sidebar :deep(.ant-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar :deep(.ant-menu-item-selected:hover) {
+  background: #1890ff !important;
+}
+
+.sidebar :deep(.ant-menu-item .anticon) {
+  font-size: 16px;
+  margin-right: 12px;
+}
+
+.sidebar :deep(.ant-menu-item span) {
+  font-size: 14px;
+}
+
 .header {
   background: white;
   padding: 0 24px;
@@ -171,24 +213,16 @@ const handleLogout = () => {
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
-  margin-left: 200px;
   position: fixed;
   top: 0;
   right: 0;
   left: 200px;
   z-index: 99;
+  height: 64px;
+  transition: left 0.2s;
 }
 
-.trigger {
-  font-size: 18px;
-  line-height: 64px;
-  cursor: pointer;
-  transition: color 0.3s;
-}
-
-.trigger:hover {
-  color: #1890ff;
-}
+/* 移除了 trigger 相关样式 */
 
 .header-right {
   display: flex;
@@ -214,17 +248,25 @@ const handleLogout = () => {
   padding: 24px;
   background: #f0f2f5;
   min-height: calc(100vh - 64px);
+  transition: margin-left 0.2s;
 }
+
+/* 移除了折叠相关样式 */
 
 /* 响应式处理 */
 @media (max-width: 768px) {
-  .header {
-    margin-left: 80px;
-    left: 80px;
+  .sidebar {
+    width: 200px !important;
+    min-width: 200px !important;
+    max-width: 200px !important;
   }
-  
+
+  .header {
+    left: 200px;
+  }
+
   .content {
-    margin-left: 80px;
+    margin-left: 200px;
   }
 }
 </style>

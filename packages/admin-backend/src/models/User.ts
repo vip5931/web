@@ -6,7 +6,6 @@ interface UserAttributes {
   username: string
   email: string
   password: string
-  role: 'admin' | 'user'
   status: 'active' | 'inactive'
   avatar?: string
   lastLoginAt?: Date
@@ -22,7 +21,6 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   declare username: string
   declare email: string
   declare password: string
-  declare role: 'admin' | 'user'
   declare status: 'active' | 'inactive'
   declare avatar?: string
   declare lastLoginAt?: Date
@@ -63,11 +61,7 @@ User.init(
         notEmpty: true
       }
     },
-    role: {
-      type: DataTypes.ENUM('admin', 'user'),
-      allowNull: false,
-      defaultValue: 'user'
-    },
+
     status: {
       type: DataTypes.ENUM('active', 'inactive'),
       allowNull: false,
