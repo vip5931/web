@@ -423,8 +423,6 @@ router.get('/stats', async ctx => {
 // 辅助函数：获取用户允许访问的区服
 async function getUserAllowedServers(userId: number): Promise<string[]> {
   try {
-    console.log('Getting allowed servers for user:', userId)
-
     // 获取用户角色
     const [userRoles] = await sequelize.query(
       `
@@ -435,8 +433,6 @@ async function getUserAllowedServers(userId: number): Promise<string[]> {
       { replacements: [userId] }
     )
 
-    console.log('User roles:', userRoles)
-
     if (!userRoles || (userRoles as any[]).length === 0) {
       return []
     }
@@ -445,16 +441,13 @@ async function getUserAllowedServers(userId: number): Promise<string[]> {
 
     // 超级管理员和管理员可以看到所有区服
     if (role.level <= 2) {
-      console.log('User is admin/super admin, getting all servers')
       const [allServers] = await sequelize.query(`
         SELECT DISTINCT server_name as name FROM rank_list
         UNION
         SELECT DISTINCT server as name FROM school
         ORDER BY name
       `)
-      const serverNames = (allServers as any[]).map(s => s.name)
-      console.log('All servers for admin:', serverNames)
-      return serverNames
+      return (allServers as any[]).map(s => s.name)
     }
 
     // 普通员工根据权限
@@ -486,14 +479,12 @@ async function getUserAllowedServers(userId: number): Promise<string[]> {
 
           // 根据区服ID获取区服名称
           if (serverIds.length > 0) {
-            console.log('Server IDs from permissions:', serverIds)
             const placeholders = serverIds.map(() => '?').join(',')
             const [servers] = await sequelize.query(
               `SELECT name FROM servers WHERE id IN (${placeholders})`,
               { replacements: serverIds }
             )
             allowedServers = (servers as any[]).map(s => s.name)
-            console.log('Allowed servers for staff:', allowedServers)
           }
         } catch (error) {
           console.warn('Failed to parse server permissions:', error)
@@ -501,7 +492,6 @@ async function getUserAllowedServers(userId: number): Promise<string[]> {
       }
     }
 
-    console.log('Final allowed servers for user', userId, ':', allowedServers)
     return allowedServers
   } catch (error) {
     console.error('Error getting user allowed servers:', error)

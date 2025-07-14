@@ -348,7 +348,6 @@ const fetchUserServers = async () => {
         server: server.name || server.server_name,
         name: server.name || server.server_name,
       }))
-      console.log('门派排行 - 获取到区服列表:', serverList.value.length, '个区服')
     }
   } catch (error: any) {
     console.error('获取用户区服失败:', error)

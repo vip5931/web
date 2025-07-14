@@ -23,7 +23,7 @@ app.use(errorHandler)
 app.use(logger())
 app.use(
   cors({
-    origin: '*', // 开发环境允许所有来源
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true
   })
 )
