@@ -21,6 +21,26 @@
         </a-row>
       </div>
 
+      <!-- 搜索区域 -->
+      <div class="search-area">
+        <a-form layout="inline" :model="searchForm">
+          <a-form-item label="区服名称">
+            <a-input
+              v-model:value="searchForm.search"
+              placeholder="请输入区服名称"
+              style="width: 200px"
+              @press-enter="handleSearch"
+            />
+          </a-form-item>
+          <a-form-item>
+            <a-space>
+              <a-button type="primary" @click="handleSearch">搜索</a-button>
+              <a-button @click="resetSearch">重置</a-button>
+            </a-space>
+          </a-form-item>
+        </a-form>
+      </div>
+
       <!-- 区服表格 -->
       <a-table
         :columns="columns"
@@ -123,6 +143,11 @@ const modalVisible = ref(false)
 const isEdit = ref(false)
 const submitLoading = ref(false)
 
+// 搜索表单
+const searchForm = reactive({
+  search: '',
+})
+
 // 分页
 const pagination = reactive({
   current: 1,
@@ -131,6 +156,16 @@ const pagination = reactive({
   showSizeChanger: true,
   showQuickJumper: true,
   showTotal: (total: number) => `共 ${total} 条记录`,
+  onChange: (page: number, pageSize: number) => {
+    pagination.current = page
+    pagination.pageSize = pageSize
+    fetchServers()
+  },
+  onShowSizeChange: (_current: number, size: number) => {
+    pagination.current = 1
+    pagination.pageSize = size
+    fetchServers()
+  },
 })
 
 // 表单数据
@@ -150,16 +185,35 @@ const formRef = ref()
 const fetchServers = async () => {
   loading.value = true
   try {
-    const response = await api.get('/servers/all')
+    const response = await api.get('/servers', {
+      params: {
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        search: searchForm.search,
+      },
+    })
     if (response.success) {
-      servers.value = response.data
-      pagination.total = response.data.length
+      servers.value = response.data.servers || response.data
+      pagination.total = response.data.total || response.data.length
     }
   } catch (error: any) {
     message.error(error.message || '获取区服列表失败')
   } finally {
     loading.value = false
   }
+}
+
+// 搜索
+const handleSearch = () => {
+  pagination.current = 1
+  fetchServers()
+}
+
+// 重置搜索
+const resetSearch = () => {
+  searchForm.search = ''
+  pagination.current = 1
+  fetchServers()
 }
 
 // 显示新增弹窗
@@ -238,5 +292,12 @@ onMounted(() => {
 
 .action-bar {
   margin-bottom: 16px;
+}
+
+.search-area {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
 }
 </style>

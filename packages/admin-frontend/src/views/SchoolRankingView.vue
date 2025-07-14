@@ -327,7 +327,7 @@ const fetchSchools = async () => {
 
     if (response.success) {
       schools.value = response.data.schools
-      serverList.value = response.data.servers
+      // 不再从这里获取区服列表，使用fetchUserServers获取的列表
       pagination.total = response.data.pagination.total
     }
   } catch (error: any) {
@@ -343,10 +343,17 @@ const fetchUserServers = async () => {
     const userId = userStore.user?.id || 5
     const response = await api.get(`/servers/user-servers?userId=${userId}`)
     if (response.success) {
-      serverList.value = response.data
+      // 转换数据格式以匹配下拉框需要的格式
+      serverList.value = response.data.map((server: any) => ({
+        server: server.name || server.server_name,
+        name: server.name || server.server_name,
+      }))
+      console.log('门派排行 - 获取到区服列表:', serverList.value.length, '个区服')
     }
   } catch (error: any) {
     console.error('获取用户区服失败:', error)
+    // 如果获取失败，设置空数组
+    serverList.value = []
   }
 }
 

@@ -3,6 +3,61 @@ import { sequelize } from '../config/database'
 
 const router = new Router()
 
+// 获取区服列表（支持分页）
+router.get('/', async ctx => {
+  try {
+    const { page = 1, pageSize = 10, search = '' } = ctx.query
+
+    const offset = (Number(page) - 1) * Number(pageSize)
+    const limit = Number(pageSize)
+
+    let whereClause = ''
+    const replacements: any[] = []
+
+    if (search) {
+      whereClause = 'WHERE name LIKE ?'
+      replacements.push(`%${search}%`)
+    }
+
+    // 获取总数
+    const [countResult] = await sequelize.query(
+      `SELECT COUNT(*) as total FROM servers ${whereClause}`,
+      { replacements }
+    )
+    const total = (countResult as any[])[0].total
+
+    // 获取分页数据
+    const [servers] = await sequelize.query(
+      `
+      SELECT id, name, code, region, status, description, max_players, open_time, created_at, updated_at
+      FROM servers
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `,
+      { replacements: [...replacements, limit, offset] }
+    )
+
+    ctx.body = {
+      success: true,
+      data: {
+        servers,
+        total,
+        current: Number(page),
+        pageSize: Number(pageSize),
+        totalPages: Math.ceil(total / Number(pageSize))
+      }
+    }
+  } catch (error) {
+    console.error('Get servers error:', error)
+    ctx.status = 500
+    ctx.body = {
+      success: false,
+      message: '获取区服列表失败'
+    }
+  }
+})
+
 // 获取用户可访问的区服列表
 router.get('/user-servers', async ctx => {
   try {
@@ -30,11 +85,11 @@ router.get('/user-servers', async ctx => {
 
     // 超级管理员和管理员可以看到所有区服
     if (role.level <= 2) {
-      // 从排行榜和门派表中获取所有区服
+      // 从数据库servers表中获取所有区服
       const [allServers] = await sequelize.query(`
-        SELECT DISTINCT server_name as name FROM rank_list
-        UNION
-        SELECT DISTINCT server as name FROM school
+        SELECT id, name, code, region, status
+        FROM servers
+        WHERE status = 'active'
         ORDER BY name
       `)
 
@@ -53,21 +108,21 @@ router.get('/user-servers', async ctx => {
       { replacements: [userId] }
     )
 
-    let allowedServers: string[] = []
+    let allowedServerIds: number[] = []
 
     if (staffPermissions && (staffPermissions as any[]).length > 0) {
       const permission = (staffPermissions as any[])[0]
       const serverPermissions = permission.server_permissions
 
-      // 安全解析区服权限
+      // 安全解析区服权限（这里存储的是区服ID）
       if (serverPermissions) {
         try {
           if (Array.isArray(serverPermissions)) {
-            allowedServers = serverPermissions
+            allowedServerIds = serverPermissions
           } else if (typeof serverPermissions === 'string') {
             const parsed = JSON.parse(serverPermissions)
             if (Array.isArray(parsed)) {
-              allowedServers = parsed
+              allowedServerIds = parsed
             }
           }
         } catch (error) {
@@ -76,17 +131,17 @@ router.get('/user-servers', async ctx => {
       }
     }
 
-    // 获取允许的区服详细信息
-    if (allowedServers.length > 0) {
-      const placeholders = allowedServers.map(() => '?').join(',')
+    // 根据区服ID获取区服详细信息
+    if (allowedServerIds.length > 0) {
+      const placeholders = allowedServerIds.map(() => '?').join(',')
       const [userServers] = await sequelize.query(
         `
-        SELECT DISTINCT server_name as name FROM rank_list WHERE server_name IN (${placeholders})
-        UNION
-        SELECT DISTINCT server as name FROM school WHERE server IN (${placeholders})
+        SELECT id, name, code, region, status
+        FROM servers
+        WHERE id IN (${placeholders}) AND status = 'active'
         ORDER BY name
       `,
-        { replacements: [...allowedServers, ...allowedServers] }
+        { replacements: allowedServerIds }
       )
 
       ctx.body = {
