@@ -12,23 +12,23 @@
         mode="inline"
         @click="handleMenuClick"
       >
-        <a-menu-item key="dashboard">
-          <DashboardOutlined />
-          <span>仪表盘</span>
-        </a-menu-item>
-
-        <a-menu-item key="users">
-          <UserOutlined />
-          <span>用户管理</span>
-        </a-menu-item>
-        <a-menu-item key="roles">
-          <TeamOutlined />
-          <span>角色管理</span>
-        </a-menu-item>
-        <a-menu-item key="permissions">
-          <SafetyOutlined />
-          <span>权限管理</span>
-        </a-menu-item>
+        <template v-for="menu in userMenus" :key="menu.code">
+          <!-- 有子菜单的情况 -->
+          <a-sub-menu v-if="menu.children && menu.children.length > 0" :key="menu.code">
+            <template #title>
+              <component v-if="menu.icon" :is="getIconComponent(menu.icon)" />
+              <span>{{ menu.name }}</span>
+            </template>
+            <a-menu-item v-for="child in menu.children" :key="child.path">
+              {{ child.name }}
+            </a-menu-item>
+          </a-sub-menu>
+          <!-- 没有子菜单的情况 -->
+          <a-menu-item v-else :key="menu.path">
+            <component v-if="menu.icon" :is="getIconComponent(menu.icon)" />
+            <span>{{ menu.name }}</span>
+          </a-menu-item>
+        </template>
       </a-menu>
     </a-layout-sider>
 
@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -84,32 +84,114 @@ import {
   UserOutlined,
   TeamOutlined,
   SafetyOutlined,
+  TrophyOutlined,
   DownOutlined,
   LogoutOutlined,
 } from '@ant-design/icons-vue'
 import { useUserStore } from '@/stores/user'
+import axios from 'axios'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
 const selectedKeys = ref<string[]>([])
+const userMenus = ref<any[]>([])
+
+// 创建 API 实例
+const api = axios.create({
+  baseURL: 'http://localhost:3000/api',
+  timeout: 10000,
+})
+
+// 请求拦截器
+api.interceptors.request.use(
+  (config) => {
+    if (userStore.token) {
+      config.headers.Authorization = `Bearer ${userStore.token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  },
+)
+
+// 响应拦截器
+api.interceptors.response.use(
+  (response) => {
+    return response.data
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      userStore.logout()
+    }
+    return Promise.reject(error.response?.data || error)
+  },
+)
+
+// 获取用户菜单
+const fetchUserMenus = async () => {
+  try {
+    const userId = userStore.user?.id
+    const response = await api.get(`/menus/user-menus?userId=${userId}`)
+    if (response.success) {
+      userMenus.value = response.data
+    }
+  } catch (error: any) {
+    console.error('获取用户菜单失败:', error)
+    // 默认至少显示仪表盘
+    userMenus.value = [
+      {
+        id: 1,
+        name: '仪表盘',
+        code: 'dashboard',
+        path: '/dashboard',
+        icon: 'DashboardOutlined',
+        children: [],
+      },
+    ]
+  }
+}
+
+// 获取图标组件
+const getIconComponent = (iconName: string) => {
+  const icons: Record<string, any> = {
+    DashboardOutlined,
+    UserOutlined,
+    TeamOutlined,
+    SafetyOutlined,
+    TrophyOutlined,
+    LogoutOutlined,
+  }
+  return icons[iconName] || null
+}
 
 // 监听路由变化，更新选中的菜单项
 watch(
   () => route.path,
   (newPath) => {
-    if (newPath.includes('dashboard')) {
-      selectedKeys.value = ['dashboard']
-    } else if (newPath.includes('users')) {
-      selectedKeys.value = ['users']
+    // 直接使用完整路径作为选中的key
+    selectedKeys.value = [newPath]
+
+    // 处理子路由，确保父菜单也被选中
+    if (newPath.includes('/') && newPath !== '/') {
+      const pathParts = newPath.split('/').filter(Boolean)
+      if (pathParts.length > 1) {
+        // 如果是子路由，也选中父路由
+        const parentPath = `/${pathParts[0]}`
+        if (!selectedKeys.value.includes(parentPath)) {
+          selectedKeys.value.push(parentPath)
+        }
+      }
     }
   },
   { immediate: true },
 )
 
 const handleMenuClick = ({ key }: { key: string }) => {
-  router.push(`/${key}`)
+  // key 现在直接是路径，直接跳转
+  router.push(key)
 }
 
 const handleLogout = () => {
@@ -117,6 +199,11 @@ const handleLogout = () => {
   message.success('已退出登录')
   router.push('/login')
 }
+
+// 组件挂载时获取用户菜单
+onMounted(() => {
+  fetchUserMenus()
+})
 </script>
 
 <style scoped>

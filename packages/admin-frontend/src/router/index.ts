@@ -34,31 +34,48 @@ const router = createRouter({
       children: [
         {
           path: '',
-          component: () => import('../views/UsersView.vue'),
+          component: () => import('../views/UsersViewNew.vue'),
         },
       ],
     },
+
     {
-      path: '/roles',
-      name: 'roles',
+      path: '/game-permissions',
+      name: 'game-permissions',
       component: () => import('../layouts/AdminLayout.vue'),
       meta: { requiresAuth: true },
       children: [
         {
           path: '',
-          component: () => import('../views/RolesView.vue'),
+          component: () => import('../views/GamePermissionsView.vue'),
         },
       ],
     },
     {
-      path: '/permissions',
-      name: 'permissions',
+      path: '/menu-management',
+      name: 'menu-management',
       component: () => import('../layouts/AdminLayout.vue'),
       meta: { requiresAuth: true },
       children: [
         {
           path: '',
-          component: () => import('../views/PermissionsView.vue'),
+          component: () => import('../views/MenuManagementView.vue'),
+        },
+      ],
+    },
+    {
+      path: '/ranking',
+      name: 'ranking',
+      component: () => import('../layouts/AdminLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: 'player',
+          component: () => import('../views/PlayerRankingView.vue'),
+        },
+        {
+          path: 'school',
+          component: () => import('../views/SchoolRankingView.vue'),
         },
       ],
     },

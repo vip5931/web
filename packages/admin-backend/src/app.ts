@@ -7,8 +7,11 @@ import Router from '@koa/router'
 
 import { errorHandler } from './middleware/errorHandler'
 import { authRoutes } from './routes/auth'
-import { userRoutes } from './routes/user'
-import { roleRoutes } from './routes/role-simple'
+import { userSimpleRoutes } from './routes/user-simple'
+import { userRoleRoutes } from './routes/user-roles'
+import { gamePermissionRoutes } from './routes/game-permission'
+import { rankingRoutes } from './routes/ranking'
+import { menuRoutes } from './routes/menu'
 import { connectDatabase } from './config/database'
 
 const app = new Koa()
@@ -34,8 +37,11 @@ app.use(
 
 // 路由
 router.use('/api/auth', authRoutes.routes())
-router.use('/api/users', userRoutes.routes())
-router.use('/api/roles', roleRoutes.routes())
+router.use('/api/users', userSimpleRoutes.routes())
+router.use('/api/user-roles', userRoleRoutes.routes())
+router.use('/api/game-permissions', gamePermissionRoutes.routes())
+router.use('/api/ranking', rankingRoutes.routes())
+router.use('/api/menus', menuRoutes.routes())
 
 // 健康检查
 router.get('/health', ctx => {
